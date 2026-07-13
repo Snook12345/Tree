@@ -166,6 +166,19 @@
   }
   .cat-empty{ font-size:12px; color:var(--muted); font-style:italic; }
 
+  .cards-pager{
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    margin-top:20px; font-size:13px; color:var(--muted);
+  }
+  .pager-btn{
+    background:var(--surface); border:1.5px solid var(--border); color:var(--primary-dark);
+    border-radius:9px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:inherit; transition:background .15s;
+  }
+  .pager-btn:hover:not(:disabled){ background:var(--accent-soft); }
+  .pager-btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .pager-info{ font-weight:600; }
+
   .empty-state{
     padding:60px 20px; text-align:center; color:var(--muted);
   }
@@ -215,7 +228,7 @@
     <circle cx="210" cy="20" r="3" fill="#fff"/>
   </svg>
   <div class="inner">
-    <h1 id="pageTitle">กำลังโหลดชื่อรายงาน...</h1>
+    <h1 id="pageTitle">ผลการดำเนินการตัดต้นไม้ ประจำปี 2569 ของ กฟฟ. ในสังกัด กฟก.3</h1>
   </div>
 </header>
 
@@ -246,8 +259,8 @@
 
   <div class="chart-shell" id="chartShell">
     <div class="chart-head">
-      <h2>เปรียบเทียบระยะทาง แผน vs ผลการดำเนินการ</h2>
-      <p>รวมระยะทางทั้งหมดต่อ กฟฟ. (วงจร-กม.) — กรองด้วยช่องค้นหาด้านบนได้เช่นกัน</p>
+      <h2>ระยะทางตามแผน vs ผลการดำเนินการ</h2>
+      <p>รวมระยะทางทั้งหมดต่อ กฟฟ. (วงจร-กม.)</p>
       <div class="chart-legend">
         <span><i style="background:#c4b5f2"></i>แผน</span>
         <span><i style="background:#5b2a86"></i>ผลการดำเนินการ</span>
@@ -259,6 +272,7 @@
   </div>
 
   <div class="cards-grid" id="cardsGrid"></div>
+  <div class="cards-pager" id="cardsPager"></div>
 
 </div>
 
@@ -441,12 +455,18 @@
 
     // Each category (รายปี / รายครั้งคราว / กฟภ. ดำเนินการ) is a plan+actual column pair,
     // detected by the group keyword living in the "plan" column's header text.
+    // Each category also gets its own fixed color so the bars are visually distinct.
+    const categoryColors = { 'รายปี': '#5b2a86', 'รายครั้งคราว': '#0e8f8a', 'กฟภ': '#d99a2b' };
     categoryDefs = [];
     const groupKeywords = ['รายปี', 'รายครั้งคราว', 'กฟภ'];
     headers.forEach((h, i) => {
       const kw = groupKeywords.find(k => h.includes(k));
       if(kw && i + 1 < headers.length){
-        categoryDefs.push({ label: kw === 'กฟภ' ? 'กฟภ. ดำเนินการ' : kw, planIdx: i, actualIdx: i + 1 });
+        categoryDefs.push({
+          label: kw === 'กฟภ' ? 'กฟภ. ดำเนินการ' : kw,
+          planIdx: i, actualIdx: i + 1,
+          color: categoryColors[kw]
+        });
       }
     });
   }
@@ -463,13 +483,6 @@
     return null;
   }
 
-  function barClass(pct){
-    if(pct === null) return '';
-    if(pct >= 80) return 'bar-good';
-    if(pct >= 50) return 'bar-mid';
-    return 'bar-low';
-  }
-
   function badgeClass(pctText){
     if(pctText === undefined || pctText === null || pctText.trim() === '' || pctText.trim() === '-') return 'pct-none';
     const n = parseFloat(pctText.replace('%',''));
@@ -479,7 +492,7 @@
     return 'pct-low';
   }
 
-  function buildOneCard(r, isTotal){
+  function buildOneCard(r){
     const name = r[peaColIndex] || '';
     const pctText = pctColIndex !== -1 ? (r[pctColIndex] || '').trim() : '';
     const badgeCls = badgeClass(pctText);
@@ -501,14 +514,14 @@
             <span class="cat-label">${cat.label}</span>
             <span class="cat-values">${toNum(planVal).toLocaleString('th-TH')} / ${toNum(actualVal).toLocaleString('th-TH')} &nbsp; <strong>${pctStr}</strong></span>
           </div>
-          <div class="bar-track"><div class="bar-fill ${barClass(pct)}" style="width:${barW}%"></div></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${barW}%;background:${cat.color}"></div></div>
         </div>`;
     }).join('');
 
     const totalVal = actualColIndex !== -1 ? r[actualColIndex] : '';
 
     return `
-      <div class="pea-card${isTotal ? ' is-total' : ''}">
+      <div class="pea-card">
         <div class="card-head">
           <span class="card-head-name">${escapeXml(name)}</span>
           ${pctText ? `<span class="card-badge ${badgeCls}">${badgeIcon} ${pctText}</span>` : ''}
@@ -521,13 +534,46 @@
       </div>`;
   }
 
-  function buildCards(rows){
+  let currentPage = 1;
+  const CARDS_PER_PAGE = 12;
+
+  function renderPager(totalItems){
+    const pagerEl = document.getElementById('cardsPager');
+    const totalPages = Math.max(1, Math.ceil(totalItems / CARDS_PER_PAGE));
+    if(totalPages <= 1){ pagerEl.innerHTML = ''; return; }
+    pagerEl.innerHTML = `
+      <button class="pager-btn" id="pagerPrev" ${currentPage === 1 ? 'disabled' : ''}>‹ ก่อนหน้า</button>
+      <span class="pager-info">หน้า ${currentPage} / ${totalPages} · ทั้งหมด ${totalItems} กฟฟ.</span>
+      <button class="pager-btn" id="pagerNext" ${currentPage === totalPages ? 'disabled' : ''}>ถัดไป ›</button>`;
     const grid = document.getElementById('cardsGrid');
+    document.getElementById('pagerPrev')?.addEventListener('click', () => {
+      currentPage--; buildCards(lastFilteredRows);
+      grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    document.getElementById('pagerNext')?.addEventListener('click', () => {
+      currentPage++; buildCards(lastFilteredRows);
+      grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  let lastFilteredRows = [];
+
+  function buildCards(rows){
+    lastFilteredRows = rows;
+    const grid = document.getElementById('cardsGrid');
+    const pagerEl = document.getElementById('cardsPager');
     if(rows.length === 0){
       grid.innerHTML = `<div class="empty-state"><div class="big">🔍</div>ไม่พบข้อมูลที่ตรงกับตัวกรอง</div>`;
+      pagerEl.innerHTML = '';
       return;
     }
-    grid.innerHTML = rows.map(r => buildOneCard(r, isTotalRow(r))).join('');
+    const totalPages = Math.max(1, Math.ceil(rows.length / CARDS_PER_PAGE));
+    if(currentPage > totalPages) currentPage = totalPages;
+    if(currentPage < 1) currentPage = 1;
+    const start = (currentPage - 1) * CARDS_PER_PAGE;
+    const pageRows = rows.slice(start, start + CARDS_PER_PAGE);
+    grid.innerHTML = pageRows.map(r => buildOneCard(r)).join('');
+    renderPager(rows.length);
   }
 
   function populateDatalist(rows){
@@ -599,10 +645,12 @@
 
   function applyFilter(){
     const q = document.getElementById('peaSearch').value.trim().toLowerCase();
-    const filtered = !q ? dataRowsAll : dataRowsAll.filter(r => {
-      const cell = (r[peaColIndex] || '').toLowerCase();
-      return cell.includes(q) || isTotalRow(r);
+    const filtered = dataRowsAll.filter(r => {
+      if(isTotalRow(r)) return false;
+      if(!q) return true;
+      return (r[peaColIndex] || '').toLowerCase().includes(q);
     });
+    currentPage = 1;
     buildCards(filtered);
     updateChart(filtered);
   }
@@ -628,17 +676,11 @@
       populateDatalist(dataRowsAll);
       applyFilter();
 
-      document.getElementById('pageTitle').textContent =
-        structure.title || 'รายงานผลการดำเนินการ กฟฟ.';
-
       const realCount = dataRowsAll.filter(r => !isTotalRow(r) && (r[peaColIndex] || '').trim() !== '').length;
       setStatus('ok', realCount);
     }catch(err){
       setStatus('error');
       showError(err.message || 'ไม่ทราบสาเหตุ');
-      if(document.getElementById('pageTitle').textContent === 'กำลังโหลดชื่อรายงาน...'){
-        document.getElementById('pageTitle').textContent = 'รายงานผลการดำเนินการ กฟฟ.';
-      }
     }finally{
       btn.disabled = false;
       icon.classList.remove('spin');
