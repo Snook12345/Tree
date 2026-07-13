@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ผลการดำเนินการติดตั้งมิเตอร์ — แดชบอร์ด กฟฟ.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f5f2fb;
+    --surface:#ffffff;
+    --primary:#5b2a86;
+    --primary-dark:#3a1a5c;
+    --accent:#8b5cf6;
+    --accent-soft:#efe7fb;
+    --text:#241934;
+    --muted:#6f6580;
+    --border:#e3dcf1;
+    --success:#1c9a5b;
+    --success-bg:#e7f7ee;
+    --warning:#c9821a;
+    --warning-bg:#fdf1de;
+    --danger:#d63b3b;
+    --danger-bg:#fceaea;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Noto Sans Thai','Noto Sans',sans-serif;
+    min-height:100vh;
+  }
+
+  /* Header with subtle "power line" motif */
+  header{
+    position:relative;
+    background:linear-gradient(135deg,var(--primary-dark),var(--primary) 60%,var(--accent));
+    color:#fff;
+    padding:28px 28px 22px;
+    overflow:hidden;
+  }
+  header .motif{
+    position:absolute; inset:0; opacity:.18; pointer-events:none;
+  }
+  header .inner{ position:relative; z-index:1; max-width:1400px; margin:0 auto; }
+  header .eyebrow{
+    font-size:12.5px; letter-spacing:.14em; text-transform:uppercase;
+    opacity:.85; font-weight:600; margin-bottom:6px;
+  }
+  header h1{
+    margin:0 0 4px; font-size:clamp(20px,2.6vw,28px); font-weight:800; line-height:1.3;
+  }
+  header p.sub{ margin:0; opacity:.88; font-size:14px; }
+
+  .wrap{ max-width:1400px; margin:0 auto; padding:20px 20px 60px; }
+
+  .toolbar{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px 18px;
+    display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;
+    margin-top:-34px; position:relative; z-index:2;
+    box-shadow:0 8px 24px -12px rgba(59,20,90,.25);
+  }
+  .toolbar .filter-group{ display:flex; align-items:center; gap:10px; flex:1; min-width:260px; }
+  .filter-group label{ font-size:13px; font-weight:600; color:var(--muted); white-space:nowrap; }
+  .combo{ position:relative; flex:1; max-width:340px; }
+  .combo input{
+    width:100%; padding:10px 34px 10px 14px; border-radius:9px;
+    border:1.5px solid var(--border); font-size:14px; font-family:inherit;
+    color:var(--text); background:#fff; outline:none; transition:border-color .15s;
+  }
+  .combo input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .combo::after{
+    content:"▾"; position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    color:var(--muted); pointer-events:none; font-size:12px;
+  }
+  .clear-btn{
+    background:none; border:1px solid var(--border); color:var(--muted);
+    border-radius:8px; padding:9px 12px; font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  .clear-btn:hover{ background:var(--accent-soft); color:var(--primary); }
+
+  .actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .btn{
+    display:inline-flex; align-items:center; gap:7px;
+    border:none; border-radius:9px; padding:10px 16px; font-size:13.5px; font-weight:600;
+    cursor:pointer; font-family:inherit; transition:filter .15s, transform .1s;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .btn-primary{ background:var(--primary); color:#fff; }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .btn-outline{ background:#fff; color:var(--primary); border:1.5px solid var(--accent-soft); }
+  .btn-outline:hover{ background:var(--accent-soft); }
+  .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+  .spin{ animation:spin 1s linear infinite; display:inline-block; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .status-line{
+    max-width:1400px; margin:14px auto 0; padding:0 20px;
+    display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); flex-wrap:wrap;
+  }
+  .dot{ width:8px; height:8px; border-radius:50%; background:var(--success); flex:none; }
+  .dot.err{ background:var(--danger); }
+  .dot.loading{ background:var(--warning); }
+  .status-line .count{ font-weight:700; color:var(--primary); }
+
+  .error-box{
+    max-width:1400px; margin:14px auto 0; padding:14px 16px;
+    background:var(--danger-bg); border:1px solid #f2c6c6; color:#8a2626;
+    border-radius:10px; font-size:13.5px; line-height:1.6;
+  }
+  .error-box code{ background:#fff; padding:1px 6px; border-radius:5px; font-size:12px; }
+
+  .cards-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:14px;
+    margin-top:18px;
+  }
+  .pea-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px 18px; box-shadow:0 1px 3px rgba(59,20,90,.05);
+  }
+  .pea-card.is-total{
+    grid-column:1 / -1; background:linear-gradient(135deg,var(--primary-dark),var(--primary));
+    color:#fff; border:none;
+  }
+  .pea-card.is-total .card-head-name{ color:#fff; font-size:16px; }
+  .pea-card.is-total .cat-row .cat-label{ color:rgba(255,255,255,.85); }
+  .pea-card.is-total .cat-row .cat-values{ color:rgba(255,255,255,.75); }
+  .pea-card.is-total .bar-track{ background:rgba(255,255,255,.25); }
+  .pea-card.is-total .bar-fill{ background:#fff; }
+  .pea-card.is-total .card-total{ border-top-color:rgba(255,255,255,.25); color:#fff; }
+
+  .card-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--border);
+  }
+  .card-head-name{ font-weight:700; font-size:14.5px; color:var(--primary-dark); }
+  .card-badge{
+    display:inline-flex; align-items:center; gap:5px; font-weight:800; font-size:12.5px;
+    padding:3px 10px; border-radius:999px; white-space:nowrap;
+  }
+  .card-badge.pct-good{ background:var(--success-bg); color:var(--success); }
+  .card-badge.pct-mid{ background:var(--warning-bg); color:var(--warning); }
+  .card-badge.pct-low{ background:var(--danger-bg); color:var(--danger); }
+  .card-badge.pct-none{ background:var(--accent-soft); color:var(--muted); }
+
+  .cat-row{ margin-bottom:9px; }
+  .cat-row:last-of-type{ margin-bottom:0; }
+  .cat-row-top{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px; }
+  .cat-label{ font-size:12.5px; color:var(--muted); font-weight:600; }
+  .cat-values{ font-size:12px; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .bar-track{ height:7px; border-radius:5px; background:var(--border); overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:5px; background:var(--primary); }
+  .bar-fill.bar-good{ background:var(--success); }
+  .bar-fill.bar-mid{ background:var(--warning); }
+  .bar-fill.bar-low{ background:var(--danger); }
+
+  .card-total{
+    margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);
+    display:flex; justify-content:space-between; font-size:12.5px; font-weight:700; color:var(--primary-dark);
+  }
+  .cat-empty{ font-size:12px; color:var(--muted); font-style:italic; }
+
+  .empty-state{
+    padding:60px 20px; text-align:center; color:var(--muted);
+  }
+  .empty-state .big{ font-size:34px; margin-bottom:8px; }
+
+  .chart-shell{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    margin-top:18px; padding:20px 22px 8px; box-shadow:0 1px 3px rgba(59,20,90,.05);
+  }
+  .chart-head h2{ margin:0 0 3px; font-size:16px; font-weight:800; color:var(--primary-dark); }
+  .chart-head p{ margin:0 0 10px; font-size:12.5px; color:var(--muted); }
+  .chart-legend{ display:flex; gap:16px; margin-bottom:10px; font-size:12.5px; color:var(--muted); }
+  .chart-legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .chart-legend i{ width:11px; height:11px; border-radius:3px; display:inline-block; }
+  .chart-scroll{ overflow-x:auto; padding-bottom:8px; }
+  #chartInner{ display:inline-block; min-width:100%; }
+  #chartInner svg{ display:block; }
+
+  footer{
+    max-width:1400px; margin:18px auto 0; padding:0 20px 10px;
+    font-size:12.5px; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap; align-items:center;
+  }
+  footer a{ color:var(--primary); font-weight:600; text-decoration:none; }
+  footer a:hover{ text-decoration:underline; }
+
+  ::-webkit-scrollbar{ height:10px; width:10px; }
+  ::-webkit-scrollbar-thumb{ background:var(--accent-soft); border-radius:8px; }
+  ::-webkit-scrollbar-thumb:hover{ background:#d8c8f2; }
+
+  @media (max-width:640px){
+    header{ padding:22px 16px 20px; }
+    .toolbar{ margin-top:-24px; padding:14px; }
+    .toolbar .filter-group{ min-width:100%; }
+    .combo{ max-width:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="motif" viewBox="0 0 1400 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <polyline points="-50,180 150,180 200,60 260,60 310,180 1450,180" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <polyline points="-50,120 100,120 150,20 210,20 250,120 1450,120" fill="none" stroke="#ffffff" stroke-width="1.5" opacity=".6"/>
+    <circle cx="200" cy="60" r="4" fill="#fff"/>
+    <circle cx="260" cy="60" r="4" fill="#fff"/>
+    <circle cx="150" cy="20" r="3" fill="#fff"/>
+    <circle cx="210" cy="20" r="3" fill="#fff"/>
+  </svg>
+  <div class="inner">
+    <h1 id="pageTitle">กำลังโหลดชื่อรายงาน...</h1>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <div class="filter-group">
+      <label for="peaSearch">กรอง กฟฟ.</label>
+      <div class="combo">
+        <input id="peaSearch" list="peaList" placeholder="พิมพ์ชื่อ หรือคลิกเพื่อเลื่อนเลือก..." autocomplete="off">
+        <datalist id="peaList"></datalist>
+      </div>
+      <button class="clear-btn" id="clearFilter">ล้างตัวกรอง</button>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="refreshBtn">
+        <span id="refreshIcon">🔄</span> อัปเดตข้อมูลทันที
+      </button>
+    </div>
+  </div>
+
+  <div class="status-line" id="statusLine">
+    <span class="dot loading" id="statusDot"></span>
+    <span id="statusText">กำลังโหลดข้อมูล...</span>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <div class="chart-shell" id="chartShell">
+    <div class="chart-head">
+      <h2>เปรียบเทียบระยะทาง แผน vs ผลการดำเนินการ</h2>
+      <p>รวมระยะทางทั้งหมดต่อ กฟฟ. (วงจร-กม.) — กรองด้วยช่องค้นหาด้านบนได้เช่นกัน</p>
+      <div class="chart-legend">
+        <span><i style="background:#c4b5f2"></i>แผน</span>
+        <span><i style="background:#5b2a86"></i>ผลการดำเนินการ</span>
+      </div>
+    </div>
+    <div class="chart-scroll">
+      <div id="chartInner"></div>
+    </div>
+  </div>
+
+  <div class="cards-grid" id="cardsGrid"></div>
+
+</div>
+
+<script>
+  const SHEET_ID = '1laynWog_q75KBV17Uwij0JFeDIU5hAzbzT0zqUNESv0';
+  const GID = '0'; // เปลี่ยนเลขนี้หากข้อมูลอยู่คนละแท็บ (ดูเลขท้าย gid= ใน URL ของแท็บนั้น)
+  // ใช้ endpoint gviz แทน /export?format=csv เพราะ /export ไม่รองรับ CORS
+  // ทำให้ fetch() จากหน้าเว็บอื่นถูกเบราว์เซอร์บล็อกแม้ชีตจะแชร์แบบ "ทุกคนที่มีลิงก์ดูได้" แล้วก็ตาม
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+  const EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing`;
+
+  let dataRowsAll = [];   // data rows only (excludes title + header rows)
+  let headers = [];
+  let peaColIndex = -1;
+  let pctColIndex = -1;
+  let planColIndex = -1;
+  let actualColIndex = -1;
+  let categoryDefs = [];
+  let lastAutoRefreshDate = null;
+
+  function parseCSV(text){
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for(let i=0;i<text.length;i++){
+      const c = text[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(text[i+1] === '"'){ field += '"'; i++; }
+          else inQuotes = false;
+        } else field += c;
+      } else {
+        if(c === '"') inQuotes = true;
+        else if(c === ','){ row.push(field); field=''; }
+        else if(c === '\r'){ /* skip */ }
+        else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+        else field += c;
+      }
+    }
+    if(field.length>0 || row.length>0){ row.push(field); rows.push(row); }
+    // drop fully blank rows (also removes trailing empty rows Google pads the export with)
+    return rows.filter(r => r.some(c => c.trim() !== ''));
+  }
+
+  // Merge a two-row header (group row + sub row) into flat header labels,
+  // forward-filling merged group cells (e.g. "รายปี" spanning 2 columns).
+  function mergeHeaders(groupRow, subRow){
+    const len = Math.max(groupRow.length, subRow.length);
+    const merged = [];
+    let lastGroup = '';
+    for(let i=0;i<len;i++){
+      const g = (groupRow[i] || '').trim();
+      if(g) lastGroup = g;
+      const s = (subRow[i] || '').trim();
+      if(i < 2){
+        merged.push(g || s || '');           // ที่ / กฟฟ. columns: never combine
+      } else if(s){
+        merged.push(`${lastGroup} — ${s}`);
+      } else {
+        merged.push(lastGroup);
+      }
+    }
+    return merged;
+  }
+
+  // gviz flattens the report title + multi-row group/sub headers into ONE row
+  // (column A ends up "<title> ที่"), with data starting immediately after.
+  // Detect that pattern and split the title back out; fall back to the older
+  // multi-row detection for plain /export-style CSV.
+  function splitTitleFromFirstHeader(h0){
+    const trimmed = (h0 || '').trim();
+    const parts = trimmed.split(/\s+/);
+    const last = parts[parts.length - 1];
+    if(last === 'ที่' && parts.length > 1){
+      return { title: parts.slice(0, -1).join(' '), label: 'ที่' };
+    }
+    return { title: '', label: trimmed };
+  }
+
+  // Merge the "ที่" (row number) column into "กฟฟ." (name) column, keeping the
+  // total-row label (which lives in the "ที่" cell) intact.
+  function mergeNoAndPea(hdrs, dataRows, title){
+    const noIdx = hdrs.findIndex(h => h.trim() === 'ที่');
+    const peaIdx = hdrs.findIndex(h => h.includes('กฟฟ'));
+    if(noIdx === -1 || peaIdx === -1) return { title, headers: hdrs, dataRows };
+
+    const merged = dataRows.map(r => {
+      const row = r.slice();
+      const isTotal = (r[0] || '').includes('รวม') || (r[1] || '').includes('รวม');
+      row[peaIdx] = (isTotal ? r[noIdx] : (r[peaIdx] || '')).toString().trim();
+      row.splice(noIdx, 1);
+      return row;
+    });
+    const newHdrs = hdrs.slice();
+    newHdrs.splice(noIdx, 1);
+    return { title, headers: newHdrs, dataRows: merged };
+  }
+
+  function analyzeStructure(rows){
+    // gviz-style: row 1 already starts with a plain row number → headers are
+    // fully flattened into row 0.
+    const looksFlattened = /^\d+$/.test(((rows[1] || [])[0] || '').trim());
+
+    if(looksFlattened){
+      const rawHeaders = (rows[0] || []).map(c => c.trim());
+      const split = splitTitleFromFirstHeader(rawHeaders[0]);
+      rawHeaders[0] = split.label;
+
+      let numCols = 0;
+      rawHeaders.forEach((h, i) => { if(h && h.trim() !== '') numCols = i + 1; });
+      const hdrs = rawHeaders.slice(0, numCols);
+      const dataRows = rows.slice(1).map(r => r.slice(0, numCols));
+      return mergeNoAndPea(hdrs, dataRows, split.title);
+    }
+
+    // Fallback: /export-style CSV — separate title row, then 1-2 header rows.
+    let hIdx = rows.findIndex(r => (r[0] || '').trim() === 'ที่' && (r[1] || '').includes('กฟฟ'));
+    if(hIdx === -1) hIdx = rows.findIndex(r => r.some(c => c.includes('กฟฟ')));
+    if(hIdx === -1) hIdx = 0;
+
+    let title = '';
+    for(let i = 0; i < hIdx; i++){
+      const cell = (rows[i] || []).find(c => c.trim() !== '');
+      if(cell){ title = cell.trim(); break; }
+    }
+
+    const r1 = rows[hIdx] || [];
+    const r2 = rows[hIdx + 1] || [];
+    const subCount = r2.filter(c => c.trim() !== '').length;
+    const nextRowIsData = /^\d+$/.test((r2[0] || '').trim());
+
+    let hdrs, dataStart;
+    if(!nextRowIsData && subCount >= 2){
+      hdrs = mergeHeaders(r1, r2);
+      dataStart = hIdx + 2;
+    } else {
+      hdrs = r1.map(c => c.trim());
+      dataStart = hIdx + 1;
+    }
+
+    let numCols = 0;
+    hdrs.forEach((h, i) => { if(h && h.trim() !== '') numCols = i + 1; });
+    hdrs = hdrs.slice(0, numCols);
+    const dataRows = rows.slice(dataStart).map(r => r.slice(0, numCols));
+
+    return mergeNoAndPea(hdrs, dataRows, title);
+  }
+
+  function setStatus(state, extra){
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    dot.className = 'dot' + (state === 'error' ? ' err' : state === 'loading' ? ' loading' : '');
+    if(state === 'loading'){
+      text.textContent = 'กำลังโหลดข้อมูล...';
+    } else if(state === 'ok'){
+      const now = new Date();
+      const timeStr = now.toLocaleString('th-TH', { dateStyle:'medium', timeStyle:'short' });
+      text.innerHTML = `อัปเดตล่าสุด: <strong>${timeStr}</strong> · ทั้งหมด <span class="count">${extra}</span> กฟฟ.`;
+    } else if(state === 'error'){
+      text.textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    }
+  }
+
+  function showError(msg){
+    const box = document.getElementById('errorBox');
+    box.innerHTML = `
+      <div class="error-box">
+        <strong>ดึงข้อมูลไม่สำเร็จ:</strong> ${msg}<br>
+        กรุณาตรวจสอบว่าชีตตั้งค่าการแชร์เป็น <code>ทุกคนที่มีลิงก์ดูได้</code> (Anyone with the link can view)
+        หรือลองเผยแพร่สู่เว็บผ่านเมนู <code>File → Share → Publish to web</code> แล้วกด “อัปเดตข้อมูลทันที” อีกครั้ง
+      </div>`;
+  }
+  function clearError(){ document.getElementById('errorBox').innerHTML = ''; }
+
+  function detectColumns(){
+    peaColIndex = headers.findIndex(h => h.includes('กฟฟ'));
+    if(peaColIndex === -1) peaColIndex = 0;
+    pctColIndex = headers.findIndex(h => h.includes('ร้อยละ') || h.includes('%'));
+    planColIndex = headers.findIndex(h => h.includes('รวม') && (h.includes('แผน') || h.includes('แผนที่')));
+    actualColIndex = headers.findIndex(h => h.includes('รวม') && h.includes('ผลการดำเนินการ'));
+
+    // Each category (รายปี / รายครั้งคราว / กฟภ. ดำเนินการ) is a plan+actual column pair,
+    // detected by the group keyword living in the "plan" column's header text.
+    categoryDefs = [];
+    const groupKeywords = ['รายปี', 'รายครั้งคราว', 'กฟภ'];
+    headers.forEach((h, i) => {
+      const kw = groupKeywords.find(k => h.includes(k));
+      if(kw && i + 1 < headers.length){
+        categoryDefs.push({ label: kw === 'กฟภ' ? 'กฟภ. ดำเนินการ' : kw, planIdx: i, actualIdx: i + 1 });
+      }
+    });
+  }
+
+  function isTotalRow(r){
+    const cell = r[peaColIndex] !== undefined ? r[peaColIndex] : r[0];
+    return (cell || '').includes('รวม');
+  }
+
+  function catPct(planVal, actualVal){
+    const p = toNum(planVal), a = toNum(actualVal);
+    if(p > 0) return Math.round((a / p) * 100);
+    if(a > 0) return 100;
+    return null;
+  }
+
+  function barClass(pct){
+    if(pct === null) return '';
+    if(pct >= 80) return 'bar-good';
+    if(pct >= 50) return 'bar-mid';
+    return 'bar-low';
+  }
+
+  function badgeClass(pctText){
+    if(pctText === undefined || pctText === null || pctText.trim() === '' || pctText.trim() === '-') return 'pct-none';
+    const n = parseFloat(pctText.replace('%',''));
+    if(isNaN(n)) return 'pct-none';
+    if(n >= 80) return 'pct-good';
+    if(n >= 50) return 'pct-mid';
+    return 'pct-low';
+  }
+
+  function buildOneCard(r, isTotal){
+    const name = r[peaColIndex] || '';
+    const pctText = pctColIndex !== -1 ? (r[pctColIndex] || '').trim() : '';
+    const badgeCls = badgeClass(pctText);
+    const badgeIcon = badgeCls === 'pct-good' ? '✅' : badgeCls === 'pct-mid' ? '⚠️' : badgeCls === 'pct-low' ? '❗' : '';
+
+    const catRows = categoryDefs.map(cat => {
+      const planVal = r[cat.planIdx], actualVal = r[cat.actualIdx];
+      const hasData = (planVal && planVal.trim() !== '' && planVal.trim() !== '-') ||
+                       (actualVal && actualVal.trim() !== '' && actualVal.trim() !== '-');
+      if(!hasData){
+        return `<div class="cat-row"><div class="cat-row-top"><span class="cat-label">${cat.label}</span><span class="cat-empty">ไม่มีแผน</span></div></div>`;
+      }
+      const pct = catPct(planVal, actualVal);
+      const pctStr = pct === null ? '-' : pct + '%';
+      const barW = pct === null ? 0 : Math.min(100, pct);
+      return `
+        <div class="cat-row">
+          <div class="cat-row-top">
+            <span class="cat-label">${cat.label}</span>
+            <span class="cat-values">${toNum(planVal).toLocaleString('th-TH')} / ${toNum(actualVal).toLocaleString('th-TH')} &nbsp; <strong>${pctStr}</strong></span>
+          </div>
+          <div class="bar-track"><div class="bar-fill ${barClass(pct)}" style="width:${barW}%"></div></div>
+        </div>`;
+    }).join('');
+
+    const totalVal = actualColIndex !== -1 ? r[actualColIndex] : '';
+
+    return `
+      <div class="pea-card${isTotal ? ' is-total' : ''}">
+        <div class="card-head">
+          <span class="card-head-name">${escapeXml(name)}</span>
+          ${pctText ? `<span class="card-badge ${badgeCls}">${badgeIcon} ${pctText}</span>` : ''}
+        </div>
+        ${catRows}
+        <div class="card-total">
+          <span>รวมดำเนินการทั้งหมด</span>
+          <span>${totalVal ? toNum(totalVal).toLocaleString('th-TH') + ' วงจร-กม.' : '-'}</span>
+        </div>
+      </div>`;
+  }
+
+  function buildCards(rows){
+    const grid = document.getElementById('cardsGrid');
+    if(rows.length === 0){
+      grid.innerHTML = `<div class="empty-state"><div class="big">🔍</div>ไม่พบข้อมูลที่ตรงกับตัวกรอง</div>`;
+      return;
+    }
+    grid.innerHTML = rows.map(r => buildOneCard(r, isTotalRow(r))).join('');
+  }
+
+  function populateDatalist(rows){
+    if(peaColIndex === -1) return;
+    const names = [...new Set(rows.filter(r => !isTotalRow(r)).map(r => (r[peaColIndex] || '').trim()).filter(Boolean))];
+    const list = document.getElementById('peaList');
+    list.innerHTML = names.map(n => `<option value="${n}"></option>`).join('');
+  }
+
+  function toNum(val){
+    if(val === undefined || val === null) return 0;
+    const t = String(val).trim().replace(/,/g,'').replace('%','');
+    const n = parseFloat(t);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function escapeXml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+  }
+
+  function renderBarChartSVG(labels, planData, actualData){
+    const barW = 12, barGap = 3, groupGap = 26;
+    const padTop = 16, padBottom = 96, padLeft = 54, padRight = 16;
+    const chartH = 300;
+    const groupW = barW * 2 + barGap;
+    const plotH = chartH - padTop - padBottom;
+    const width = padLeft + padRight + Math.max(1, labels.length) * (groupW + groupGap);
+    const maxVal = Math.max(1, ...planData, ...actualData);
+    const scaleY = plotH / maxVal;
+    const baseY = chartH - padBottom;
+
+    let grid = '';
+    const ticks = 4;
+    for(let t = 0; t <= ticks; t++){
+      const val = maxVal * t / ticks;
+      const y = baseY - val * scaleY;
+      grid += `<line x1="${padLeft}" y1="${y}" x2="${width - padRight}" y2="${y}" stroke="#e3dcf1" stroke-width="1"/>`;
+      grid += `<text x="${padLeft - 8}" y="${y + 4}" font-size="10" fill="#6f6580" text-anchor="end">${Math.round(val).toLocaleString('th-TH')}</text>`;
+    }
+
+    let bars = '';
+    labels.forEach((label, i) => {
+      const gx = padLeft + i * (groupW + groupGap);
+      const planH = planData[i] * scaleY;
+      const actualH = actualData[i] * scaleY;
+      const cx = gx + groupW / 2;
+      bars += `<rect x="${gx}" y="${baseY - planH}" width="${barW}" height="${planH}" fill="#c4b5f2" rx="3"/>`;
+      bars += `<rect x="${gx + barW + barGap}" y="${baseY - actualH}" width="${barW}" height="${actualH}" fill="#5b2a86" rx="3"/>`;
+      bars += `<text x="0" y="0" font-size="10.5" fill="#6f6580" text-anchor="end" transform="translate(${cx},${baseY + 14}) rotate(-48)">${escapeXml(label)}</text>`;
+    });
+
+    return `<svg width="${width}" height="${chartH}" viewBox="0 0 ${width} ${chartH}" xmlns="http://www.w3.org/2000/svg" font-family="'Noto Sans Thai',sans-serif">${grid}${bars}</svg>`;
+  }
+
+  function updateChart(rows){
+    const inner = document.getElementById('chartInner');
+    if(!inner || planColIndex === -1 || actualColIndex === -1) return;
+
+    const rowsForChart = rows.filter(r => !isTotalRow(r) && (r[peaColIndex] || '').trim() !== '');
+    if(rowsForChart.length === 0){
+      inner.innerHTML = `<div class="empty-state"><div class="big">📊</div>ไม่มีข้อมูลให้แสดงกราฟ</div>`;
+      return;
+    }
+    const labels = rowsForChart.map(r => r[peaColIndex]);
+    const planData = rowsForChart.map(r => toNum(r[planColIndex]));
+    const actualData = rowsForChart.map(r => toNum(r[actualColIndex]));
+    inner.innerHTML = renderBarChartSVG(labels, planData, actualData);
+  }
+
+  function applyFilter(){
+    const q = document.getElementById('peaSearch').value.trim().toLowerCase();
+    const filtered = !q ? dataRowsAll : dataRowsAll.filter(r => {
+      const cell = (r[peaColIndex] || '').toLowerCase();
+      return cell.includes(q) || isTotalRow(r);
+    });
+    buildCards(filtered);
+    updateChart(filtered);
+  }
+
+  async function loadData(){
+    setStatus('loading');
+    clearError();
+    const btn = document.getElementById('refreshBtn');
+    const icon = document.getElementById('refreshIcon');
+    btn.disabled = true;
+    icon.classList.add('spin');
+    try{
+      const res = await fetch(CSV_URL + `&cachebust=${Date.now()}`);
+      if(!res.ok) throw new Error(`สถานะ HTTP ${res.status}`);
+      const text = await res.text();
+      const rows = parseCSV(text);
+      if(rows.length < 1) throw new Error('ไม่พบข้อมูลในชีต');
+
+      const structure = analyzeStructure(rows);
+      headers = structure.headers;
+      dataRowsAll = structure.dataRows;
+      detectColumns();
+      populateDatalist(dataRowsAll);
+      applyFilter();
+
+      document.getElementById('pageTitle').textContent =
+        structure.title || 'รายงานผลการดำเนินการ กฟฟ.';
+
+      const realCount = dataRowsAll.filter(r => !isTotalRow(r) && (r[peaColIndex] || '').trim() !== '').length;
+      setStatus('ok', realCount);
+    }catch(err){
+      setStatus('error');
+      showError(err.message || 'ไม่ทราบสาเหตุ');
+      if(document.getElementById('pageTitle').textContent === 'กำลังโหลดชื่อรายงาน...'){
+        document.getElementById('pageTitle').textContent = 'รายงานผลการดำเนินการ กฟฟ.';
+      }
+    }finally{
+      btn.disabled = false;
+      icon.classList.remove('spin');
+    }
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', loadData);
+  document.getElementById('peaSearch').addEventListener('input', applyFilter);
+  document.getElementById('clearFilter').addEventListener('click', () => {
+    document.getElementById('peaSearch').value = '';
+    applyFilter();
+  });
+
+  // Auto-refresh check: every 30s, trigger once per day at 20:00 local time (while page is open)
+  setInterval(() => {
+    const now = new Date();
+    const todayStr = now.toDateString();
+    if(now.getHours() === 20 && now.getMinutes() === 0 && lastAutoRefreshDate !== todayStr){
+      lastAutoRefreshDate = todayStr;
+      loadData();
+    }
+  }, 30000);
+
+  loadData();
+</script>
+</body>
+</html>
